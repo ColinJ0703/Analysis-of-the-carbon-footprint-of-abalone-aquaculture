@@ -1,0 +1,154 @@
+---
+title: "Untitled"
+author: "Tan, Qiaoguo"
+date: "2025-08-09"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(scico)
+library(ggplot2)  # 提供 theme(), theme_classic(), facet_grid(), labs(), scale_* 等
+library(dplyr)    # %>%, filter, mutate
+library(readxl)   # read_excel
+library(cowplot)  # plot_grid
+library(scico)    # scico 调色板
+library(grid)     # unit()
+library(patchwork)
+```
+
+# p1
+```{r}
+
+mytheme <- 
+   theme(legend.key.height = unit(0.6, "line"),
+         legend.key.width =  unit(0.6, "line"),
+         legend.position = c(1, 1),
+         legend.justification = c(1,1),
+         legend.background = element_blank()
+         )+
+   theme(axis.text = element_text(color = "black"))
+
+d <- 
+read_excel("Fig. 2.xlsx", sheet = 3) 
+  
+names(d)
+unique(d$Mode)
+
+range(d$Emission)
+p1 <-
+d %>% 
+filter(Species == "Non-genetically improved") %>% 
+  ggplot(aes(Emission, Density, color = factor(Heads)))+
+  theme_classic()+
+   geom_vline(xintercept = 0, 
+              linetype = "solid", linewidth = 0.25)+
+  geom_line()+
+  facet_grid( Mode~., switch = "y" )+
+ scale_x_continuous(limits = c(-1000, 11000),
+                    breaks=c(-1000, 0, 2000, 4000, 6000, 8000, 10000)
+                    )+
+  scale_color_scico_d(palette = "batlow")+
+  
+  labs(x = "",
+       y = "",
+       title = ~bold("Non-genetically improved"),
+       color = "Heads"
+       )+
+ 
+   theme(
+    axis.text =  element_text(color = "black"),
+    axis.ticks.y = element_blank(),
+    axis.text.y = element_blank(),
+    axis.line.y = element_blank(),
+    panel.grid.major =  element_blank(),
+    strip.placement = "outside",
+   strip.text.y.left =  element_text(color = "black", 
+                                      size = 10,
+                                      face = "bold",angle =0,hjust = 0 ),
+    strip.background = element_blank() 
+  )+
+  mytheme
+
+p1
+```
+
+
+# p2
+```{r}
+
+mytheme <- 
+   theme(legend.key.height = unit(0.6, "line"),
+         legend.key.width =  unit(0.6, "line"),
+         legend.position = c(1, 1),
+         legend.justification = c(1,1),
+         legend.background = element_blank()
+         )+
+   theme(axis.text = element_text(color = "black"))
+
+d <- 
+read_excel("Fig. 2.xlsx", sheet = 3) 
+  
+names(d)
+unique(d$Mode)
+
+p2 <-
+d %>% 
+filter(Species == "Genetically improved") %>% 
+  ggplot(aes(Emission, Density, color = factor(Heads)))+
+  theme_classic()+
+   geom_vline(xintercept = 0, 
+              linetype = "solid", linewidth = 0.25)+
+  geom_line()+
+  
+  facet_grid( Mode~., switch = "y" )+
+  scale_x_continuous(limits = c(-1000, 11000),
+                    breaks=c(-1000, 0, 2000, 4000, 6000, 8000, 10000)
+                    )+
+ 
+  scale_color_scico_d(palette = "batlow")+
+  
+  labs(x = ~"Carbon footprint (kg CO"[2]~"eq. FU"^"-1"*")",
+       y = "",
+       title = ~bold("Genetically improved"),
+       color = "Heads"
+       )+
+ 
+   theme(
+    axis.text =  element_text(color = "black"),
+    axis.ticks.y = element_blank(),
+    axis.text.y = element_blank(),
+    axis.line.y = element_blank(),
+    panel.grid.major =  element_blank(),
+    strip.placement = "outside",
+    strip.text.y.left =  element_text(color = "black", 
+                                      size = 10,
+                                      face = "bold",angle =0,hjust = 0 ),
+    strip.background = element_blank() 
+  )+
+  mytheme+
+  guides(color = "none")
+p2
+```
+
+
+# 拼图
+```{r}
+plot_grid(p1, p2,
+          ncol = 1,
+          rel_heights = c(1, 0.9),
+          labels = c("a", "b"),
+          label_size = 14,
+          label_fontface = "bold",
+          label_x = 0,
+          label_y = 1)
+# 保存文件
+ggsave("figure 2.png", width = 507/90, height = 493/90, dpi = 900)
+ggsave("figure 2.pdf", width = 507/90, height = 493/90)
+
+```
+
