@@ -1,0 +1,239 @@
+---
+title: "figure 4"
+
+date: "2025-08-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(readxl)
+library(tidyverse)
+library(patchwork)
+library(ggsci)
+library(ggrepel)
+library(cowplot)
+library(grid) # unit(), grob
+
+```
+
+
+# All
+```{r}
+# 读取三国的 scenario 列，做并集
+scn_cn <- read_excel("Fig 4 China.xlsx",        sheet = "Fig 4a1", skip = 38) |> select(scenario)
+scn_kr <- read_excel("Fig 4 South Korea.xlsx",  sheet = "Fig 4b1", skip = 43) |> select(scenario)
+scn_za <- read_excel("Fig 4 South Africa.xlsx", sheet = "Fig 4c1", skip = 44) |> select(scenario)
+
+scen_levels_raw <- c(scn_cn$scenario, scn_kr$scenario, scn_za$scenario) |> unique() |> as.character()
+
+# 期望顺序（若不存在则自动忽略）
+pref <- c("BAU","Best (with BG)","Best (without BG)","P1","P2","P3","P4","P5")
+scen_levels <- c(pref[pref %in% scen_levels_raw], setdiff(scen_levels_raw, pref))
+
+# === 全局主题 ===
+base_theme <- theme(
+  legend.key.height = unit(0.6, "line"),
+  legend.key.width  = unit(0.6, "line"),
+  legend.position   = c(0.02, 0),
+  legend.justification = c(0,0),
+  legend.background = element_blank(),
+  plot.margin = margin(l = 0.5, unit = "cm"),
+  axis.text = element_text(color = "black"),
+  plot.title = element_text(size=16, hjust = 0.5)
+) + theme(text = element_text(size = 16))
+
+# === 情景图例标签映射 ===
+scen_labels <- setNames(scen_levels, scen_levels)
+if ("P1" %in% names(scen_labels)) scen_labels["P1"] <- "Energy efficiency improvement"
+if ("P2" %in% names(scen_labels)) scen_labels["P2"] <- "Aquaculture transformation"
+if ("P3" %in% names(scen_labels)) scen_labels["P3"] <- "Variety evolution"
+if ("P4" %in% names(scen_labels)) scen_labels["P4"] <- "Feed substation"
+if ("P5" %in% names(scen_labels)) scen_labels["P5"] <- "Infrastructure upgrade"
+
+
+```
+# China
+```{r}
+rdbu <- RColorBrewer::brewer.pal(name = "RdBu", n = 9)
+mycol <- rdbu[c(1:3,4)]
+
+d1 <- read_excel("Fig 4 China.xlsx", sheet = "Fig 4a1", skip = 38)
+d2 <- read_excel("Fig 4 China.xlsx", sheet = "Fig 4a2", skip = 10)
+d2$Process2 <- factor(d2$Process, levels = c("Infra.&Equip.","Energy","Transport","Feed"))
+
+d1$scenario <- factor(d1$scenario, levels = scen_levels)
+
+p1a <- d1 %>%
+  ggplot(aes(Year, mean/1000, group = scenario)) +
+  theme_classic() +
+  geom_col(data = d2, position = "stack", width = 2,
+           aes(Year, CO2/1000, fill = Process2), inherit.aes = FALSE) +
+  geom_line(aes(color = scenario), linewidth = 0.7) +
+  scale_y_continuous(limits = c(-4.8e2, 3e2)) +
+  scale_fill_manual(values = mycol) +
+  scale_color_npg(limits = scen_levels, drop = FALSE, labels = scen_labels[scen_levels]) +
+  labs(fill = NULL, y = "", title = "China") +
+  guides(color = "none", fill = "none") +
+  base_theme
+
+p1b <- d1 %>%
+  filter(Year == 2050) %>%
+  ggplot(aes(scenario, mean/1000, color = scenario)) +
+  theme_classic() +
+  geom_point() +
+  geom_linerange(aes(min = min/1000, max = max/1000), linewidth = 0.7) +
+  scale_y_continuous(limits = c(-4.8e2, 3e2)) +
+  theme(axis.text.x = element_text(angle = 30, vjust = 1, hjust = 1.05)) +
+  scale_color_npg(limits = scen_levels, drop = FALSE, labels = scen_labels[scen_levels]) +
+  guides(color = "none", fill = "none") +
+  labs(title = "Uncertainty in 2050", y = NULL, x = NULL) +
+  base_theme +
+  theme(axis.line.y = element_blank())
+
+p1 <- plot_grid(p1a, p1b, align = "h", axis = "b", rel_widths = c(1, 0.8))
+
+
+```
+
+
+# South Korea
+```{r}
+
+d1 <- read_excel("Fig 4 South Korea.xlsx", sheet = "Fig 4b1", skip = 43)
+d2 <- read_excel("Fig 4 South Korea.xlsx", sheet = "Fig 4b2", skip = 10)
+d2$Process2 <- factor(d2$Process, levels = c("Infra.&Equip.","Energy","Transport","Feed"))
+
+d1$scenario <- factor(d1$scenario, levels = scen_levels)
+
+p2a <- d1 %>%
+  ggplot(aes(Year, mean/1000, group = scenario)) +
+  theme_classic() +
+  geom_col(data = d2, position = "stack", width = 2,
+           aes(Year, CO2/1000, fill = Process2), inherit.aes = FALSE) +
+  geom_line(aes(color = scenario), linewidth = 0.7) +
+  scale_y_continuous(limits = c(-50, 40)) +
+  scale_fill_manual(values = mycol) +
+  scale_color_npg(limits = scen_levels, drop = FALSE, labels = scen_labels[scen_levels]) +
+  labs(fill = NULL,
+       y = ~"Carbon footprint (kt CO"[2]~"eq."~"year"^"-1"*")",
+       title = "South Korea") +
+  guides(color = "none", fill = "none") +
+  base_theme
+
+p2b <- d1 %>%
+  filter(Year == 2050) %>%
+  ggplot(aes(scenario, mean/1000, color = scenario)) +
+  theme_classic() +
+  geom_point() +
+  geom_linerange(aes(min = min/1000, max = max/1000), linewidth = 0.7) +
+  scale_y_continuous(limits = c(-50, 40)) +
+  theme(axis.text.x = element_text(angle = 30, vjust = 1, hjust = 1.05)) +
+  scale_color_npg(limits = scen_levels, drop = FALSE, labels = scen_labels[scen_levels]) +
+  guides(color = "none", fill = "none") +
+  labs(title = "", y = NULL, x = NULL) +
+  base_theme +
+  theme(axis.line.y = element_blank())
+
+p2 <- plot_grid(p2a, p2b, align = "h", axis = "b", rel_widths = c(1, 0.8))
+
+
+```
+
+
+# South Africa
+```{r}
+d1 <- read_excel("Fig 4 South Africa.xlsx", sheet = "Fig 4c1", skip = 44)
+d2 <- read_excel("Fig 4 South Africa.xlsx", sheet = "Fig 4c2", skip = 10)
+d2$Process2 <- factor(d2$Process, levels = c("Infra.&Equip.","Energy","Transport","Feed"))
+
+d1$scenario <- factor(d1$scenario, levels = scen_levels)
+
+p3a <- d1 %>%
+  ggplot(aes(Year, mean/1000, group = scenario)) +
+  theme_classic() +
+  geom_col(data = d2, position = "stack", width = 2,
+           aes(Year, CO2/1000, fill = Process2), inherit.aes = FALSE) +
+  geom_line(aes(color = scenario), linewidth = 0.7) +
+  scale_y_continuous(limits = c(0, 200)) +
+  scale_fill_manual(values = mycol) +
+  scale_color_npg(limits = scen_levels, drop = FALSE, labels = scen_labels[scen_levels]) +
+  labs(fill = NULL, y = "", title = "South Africa") +
+  guides(color = "none", fill = "none") +
+  base_theme
+
+p3b <- d1 %>%
+  filter(Year == 2050) %>%
+  ggplot(aes(scenario, mean/1000, color = scenario)) +
+  theme_classic() +
+  geom_point() +
+  geom_linerange(aes(min = min/1000, max = max/1000), linewidth = 0.7) +
+  scale_y_continuous(limits = c(0, 200)) +
+  theme(axis.text.x = element_text(angle = 30, vjust = 1, hjust = 1.05)) +
+  scale_color_npg(limits = scen_levels, drop = FALSE, labels = scen_labels[scen_levels]) +
+  guides(color = "none", fill = "none") +
+  labs(title = "", y = NULL, x = NULL) +
+  base_theme +
+  theme(axis.line.y = element_blank())
+
+p3 <- plot_grid(p3a, p3b, align = "h", axis = "b", rel_widths = c(1, 0.8))
+
+
+```
+
+
+# 拼图
+
+```{r}
+# 主图
+all_plots <- plot_grid(p1, p2, p3,
+                       ncol = 1, align = "v", axis = "l",
+                       labels = c("a","b","c"))
+
+# --- 过程图例 ---
+legend_process <- get_legend(
+  ggplot(d2, aes(x = Year, y = CO2/1000, fill = Process2)) +
+    geom_col() +
+    scale_fill_manual(values = mycol) +
+    guides(
+      fill = guide_legend(
+        title = NULL,
+        override.aes = list(shape = 22, size = 4)
+      )
+    ) +
+    theme_void() +
+    theme(
+      legend.position = "left",
+      legend.key.width  = unit(0.5, "cm"),
+      legend.key.height = unit(0.5, "cm"),
+      legend.background = element_rect(fill = "white", color = NA),
+      text = element_text(size = 16)
+    )
+)
+
+# --- 最终拼图：只放过程图例 ---
+final_plot <- ggdraw() +
+  draw_plot(all_plots, x = 0, y = 0, width = 1, height = 1) +
+  draw_grob(
+    legend_process,
+    x = 0.1, y = 0.15, width = 0.25, height = 0.2,
+    hjust = 0, vjust = 0
+  )
+
+final_plot
+
+# --- 导出 ---
+scale_factor <- 1.35
+w_in <- (463/90) * scale_factor   # 去掉右边空白
+h_in <- (666/90) * scale_factor
+
+ggsave("figure 4.png", final_plot, width = w_in, height = h_in, dpi = 1200)
+ggsave("figure 4.pdf", final_plot, width = w_in, height = h_in)
+
+
+
+```
+

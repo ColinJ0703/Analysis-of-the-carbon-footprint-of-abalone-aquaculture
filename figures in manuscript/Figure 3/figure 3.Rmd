@@ -1,0 +1,150 @@
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+
+library(ggplot2)    # theme(), geoms
+library(ggtext)     # element_markdown()
+library(ggsci)      # scale_fill_npg()
+library(patchwork)  # (p1 / p2) + plot_layout(tag_levels = "a")
+library(readxl)     # read_excel()
+library(dplyr)      # %>% , filter(), mutate()
+library(tidyr)      # pivot_longer()
+
+```
+
+
+```{r}
+scales::show_col(RColorBrewer::brewer.pal(9, "Reds"))
+scales::show_col(RColorBrewer::brewer.pal(9, "Blues"))
+scales::show_col(RColorBrewer::brewer.pal(9, "Purples"))
+
+```
+
+
+```{r}
+library(ggtext)
+library(ggsci)
+
+mytheme <- 
+   theme(legend.key.height = unit(0.7, "line"),
+         legend.key.width =  unit(0.7, "line"),
+         theme(legend.position.inside = c(1, 0.05)),
+         legend.justification = c(1,0)
+         )+
+   theme(axis.text = element_text(color = "black"))
+
+```
+
+
+## Figure a
+```{r}
+
+
+d0 <- read_excel("Fig. 3.xlsx", sheet = 1)
+
+d <- d0 %>% 
+  pivot_longer(cols = 2:4) 
+
+d$name <- factor(d$name, 
+                 levels = rev(c("China","South Korea","South Africa"))
+                 )
+p_1 <-
+d %>% 
+  ggplot(aes(year, value, fill = name))+
+  theme_classic()+
+    geom_col(position = "stack", width = 0.7)+
+  
+   labs(x = "Year",
+       y = "Abalone production <br> (10<sup>4</sup> t year<sup>-1</sup>)",
+       fill = NULL
+       )+
+  mytheme+
+  theme(legend.position = c(0.02, 1), 
+  legend.justification   = c(0, 1) 
+        )+
+  theme(axis.title.y = element_markdown())+
+   scale_fill_npg()
+
+p_1
+```
+
+
+## Figure b
+```{r}
+
+
+d0 <- read_excel("Fig. 3.xlsx", sheet = 3)
+
+d <- d0 %>% 
+  pivot_longer(cols = 2:4) 
+
+d$name <- factor(d$name, 
+                 levels = rev(c("China","Korea","South Africa"))
+                 )
+
+p_2 <-
+d %>% 
+  ggplot(aes(year, value, fill = name))+
+  theme_classic()+
+    geom_area(position = "stack")+
+
+  
+  labs(x = "Year",
+     y = "Carbon footprint <br>(10<sup>5</sup> t CO<sub>2</sub> eq. year<sup>-1</sup>)"
+    )+
+  
+  guides(fill = "none")+
+
+theme(axis.title.y = element_markdown())+
+  scale_fill_npg()+
+  scale_y_continuous(limits = c(0, 6))+
+  #geom_point(x = 2005, y = 6, shape = 16, size = 2)+
+  #geom_point(x = 2005, y = 6, shape = 1, size = 4)+
+  geom_segment(x = 2005, xend = 2005, y = 6, yend = 0, linewidth = 0.2)+
+  #geom_point(x = 2015, y = 6, shape = 16, size = 2)+
+  #geom_point(x = 2015, y = 6, shape = 1, size = 4)+
+  geom_segment(x = 2015, xend = 2015, y = 6, yend = 0, linewidth = 0.2)+
+  geom_label(x= 2005, y = 6, 
+             hjust = 0, vjust = 1,
+             fill = "white",
+             label = "invention of \nfloating raft mode",
+               lineheight = 0.9,
+             size = 3
+             )+
+  geom_label(x= 2015, y = 6, 
+             hjust = 0,vjust = 1,
+             fill = "white",
+             label = "invention of \nsouth-north-relay mode",
+             lineheight = 0.9,
+             size = 3
+             )
+  
+
+
+p_2
+```
+
+
+```{r}
+library(cowplot)
+
+fig3 <- plot_grid(
+  p_1, p_2,
+  ncol = 1,
+  labels = c("a", "b"),
+  label_size = 14,
+  label_fontface = "bold",
+  label_x = 0, 
+  label_y = 1 
+)
+
+fig3
+ggsave("figure 3.png", plot = fig3, width = 474/90, height = 449/90, dpi = 900)
+ggsave("figure 3.pdf", plot = fig3,  width = 474/90, height = 449/90)
+
+
+```
+
